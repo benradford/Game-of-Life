@@ -1,0 +1,125 @@
+---
+title: ""
+runtime: shiny
+output: html_document
+---
+
+```{r, echo=F, warning=F, message=F, results='hide', error=FALSE}
+library(abind)
+
+shiftMatrix <- function(current.state, row.shift, col.shift)
+{
+  n.row.min <- nrow(current.state) + 1
+  n.row.max <- nrow(current.state)*2
+  n.col.min <- ncol(current.state) + 1
+  n.col.max <- ncol(current.state)*2
+  tri.matrix <- cbind(current.state,current.state,current.state)
+  tri.matrix <- rbind(tri.matrix,tri.matrix,tri.matrix)
+  new.matrix <- tri.matrix[(n.row.min+row.shift):(n.row.max+row.shift),(n.col.min+col.shift):(n.col.max+col.shift)]
+  return(new.matrix)
+}
+
+nextState <- function(current.state, born, stay)
+{
+  
+  newmatrix.list <- lapply(shift.indices, FUN=function(x){shiftMatrix(current.state, x[1], x[2])})
+  new.array <- do.call(abind,c(newmatrix.list,list(along=3)))
+  sum.neighbors <- apply(new.array, c(1,2), FUN=function(x){sum(x)})
+  
+  new.matrix <- matrix(0, nrow=nrow(current.state), ncol=ncol(current.state))
+  new.matrix[sum.neighbors%in%stay & current.state==1] <- 1
+  new.matrix[sum.neighbors%in%born & current.state==0] <- 1
+  
+  return(new.matrix)
+}
+
+plotState <- function(array, step)
+{
+  par(mar=c(0,0,0,0))
+  plot(0,0,type="n",xlim=c(0,1),ylim=c(0,1),frame=F,xlab="",ylab="",xaxt="n",yaxt="n",xaxs="i",yaxs="i")
+  rasterImage(1-array[,,step], 0, 0, 1, 1, interpolate=F)
+}
+
+n.row <- 40
+n.col <- 40
+n <- 250
+starting.prob <- .25
+shift.indices <- cbind(c(1,1,1,0,0,-1,-1,-1),c(1,0,-1,1,-1,1,0,-1))
+shift.indices <- as.list(as.data.frame(t(shift.indices)))
+
+glider.gun <- rbind(c(24,8),
+c(22,7),c(24,7),
+c(12,6),c(13,6),c(20,6),c(21,6),c(34,6),c(35,6),
+c(11,5),c(15,5),c(20,5),c(21,5),c(34,5),c(35,5),
+c(0,4),c(1,4),c(10,4),c(16,4),c(20,4),c(21,4),
+c(0,3),c(1,3),c(10,3),c(14,3),c(16,3),c(17,3),c(22,3),c(24,3),
+c(10,2),c(16,2),c(24,2),
+c(11,1),c(15,1),
+c(12,0),c(13,0))
+
+glider.gun[,1:2] <- glider.gun[,2:1]
+glider.gun[,1] <- glider.gun[,1] + 30
+glider.gun[,2] <- glider.gun[,2] + 1
+
+
+newArray <- function(starting.prob=0.1, born, stay)
+{
+  if(grepl("glider|gun",paste(born,stay,sep=" "),ignore.case=T))
+  {
+    raster.array <- array(0, dim=c(n.row, n.col, n))
+    raster.array[,,1][glider.gun] <- 1
+    born <- c(3)
+    stay <- c(2,3)
+  }
+  else
+  {
+    born <- as.numeric(unlist(strsplit(born, split="")))
+    stay <- as.numeric(unlist(strsplit(stay, split="")))
+    born <- born[!is.na(born)]
+    stay <- stay[!is.na(stay)]
+    
+    raster.array <- array(NA, dim=c(n.row,n.col,n))
+    raster.array[,,1] <- matrix(rbinom(n.row*n.col, 1, prob=starting.prob), nrow=n.row, ncol=n.col)
+  }
+  
+  for(ii in 2:n)
+  {
+    raster.array[,,ii] <- nextState(raster.array[,,ii-1], born, stay)
+  }
+  return(raster.array)
+}
+```
+
+
+```{r, echo=FALSE}
+
+HTML("<center>")
+
+sidebarPanel(
+  sliderInput("state.slider", label = "Step",
+              min=1, max=n, value=1, step=1, 
+              animate=animationOptions(interval = 200, loop = FALSE, playButton = NULL, pauseButton = NULL), width=200),
+  HTML("<hr style='border:0; height:1px; background:#333; 
+       background-image:-webkit-linear-gradient(left,#ccc,#333,#ccc);
+       background-image:-moz-linear-gradient(left,#ccc,#333,#ccc);
+       background-image:-ms-linear-gradient(left,#ccc,#333,#ccc);
+       background-image:-o-linear-gradient(left,#ccc,#333,#ccc);'>"),
+  sliderInput("starting.prob", "Starting Proportion", 0.25, min=0, max=1, step=0.05),
+  textInput("born","Born if next to:","3"),
+  textInput("stay","Stays if next to:","23"),
+  br(),br(),
+  actionButton("Refresh", "Refresh")
+  )
+
+renderPlot({
+  plotState(new.array(), input$state.slider)
+}, height = 500, width = 500)
+
+new.array <- reactive({
+  input$Refresh
+  newArray(isolate(input$starting.prob), isolate(input$born), isolate(input$stay))
+})
+```
+
+
+
