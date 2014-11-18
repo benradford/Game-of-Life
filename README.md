@@ -5,6 +5,9 @@ Benjamin J. Radford
 
 Implementation of [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway's_Game_of_Life) in [R Shiny](http://shiny.rstudio.com/). The app can be run locally from within [R](http://www.r-project.org/) using the [Shiny](http://cran.r-project.org/web/packages/shiny/index.html) package. Alternatively, the app is hoted online at [https://benradford.shinyapps.io/game_of_life/](https://benradford.shinyapps.io/game_of_life/).
 
+Parameters
+---
+
 *Step*  
 Cycles through or animates the first 250 iterations of the game. These states are pre-calculated but the images are generated on-the-fly.
 
