@@ -4,8 +4,14 @@ runtime: shiny
 output: html_document
 ---
 
+```{r set-options, echo=FALSE, cache=FALSE}
+options(width = 30)
+```
+
 ```{r, echo=F, warning=F, message=F, results='hide', error=FALSE}
 library(abind)
+
+
 
 shiftMatrix <- function(current.state, row.shift, col.shift)
 {
@@ -93,32 +99,41 @@ newArray <- function(starting.prob=0.1, born, stay)
 
 ```{r, echo=FALSE}
 
-HTML("<center>")
+textInputRow<-function (inputId, label, value = "") 
+{
+    div(style="display:inline-block",
+        tags$label(label, `for` = inputId), 
+        tags$input(id = inputId, type = "text", value = value,class="input-small"))
+}
 
+HTML("<center>")
+bootstrapPage(
 sidebarPanel(
   sliderInput("state.slider", label = "Step",
               min=1, max=n, value=1, step=1, 
-              animate=animationOptions(interval = 200, loop = FALSE, playButton = NULL, pauseButton = NULL), width=200),
+              animate=animationOptions(interval = 200, loop = FALSE, playButton = NULL, pauseButton = NULL)),
   HTML("<hr style='border:0; height:1px; background:#333; 
        background-image:-webkit-linear-gradient(left,#ccc,#333,#ccc);
        background-image:-moz-linear-gradient(left,#ccc,#333,#ccc);
        background-image:-ms-linear-gradient(left,#ccc,#333,#ccc);
        background-image:-o-linear-gradient(left,#ccc,#333,#ccc);'>"),
   sliderInput("starting.prob", "Starting Proportion", 0.25, min=0, max=1, step=0.05),
-  textInput("born","Born if next to:","3"),
-  textInput("stay","Stays if next to:","23"),
-  br(),br(),
-  actionButton("Refresh", "Refresh")
-  )
+  br(),
+  textInputRow("born","Born if next to:","3"),
+  textInputRow("stay","Stays if next to:","23"),
+  br(),
+  actionButton("Refresh", "Refresh")),
 
 renderPlot({
   plotState(new.array(), input$state.slider)
-}, height = 500, width = 500)
+  }, height = 400, width = 400), theme="bootstrap.css")             
+
 
 new.array <- reactive({
   input$Refresh
   newArray(isolate(input$starting.prob), isolate(input$born), isolate(input$stay))
 })
+
 ```
 
 
